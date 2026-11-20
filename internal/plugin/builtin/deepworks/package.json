@@ -1,0 +1,16 @@
+{
+  "name": "@magpie-community/opencode-deepworks-auth",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./index.mjs",
+  "license": "MIT",
+  "description": "DeepWorks's own models: DeepFoundry, read from the app's runtime files.",
+  "magpie": {
+    "name": "DeepWorks",
+    "icon": "deepseek-color",
+    "summary": {
+      "en": "The models DeepWorks ships, from DeepFoundry, read off the app's own runtime files.",
+      "zh": "DeepWorks 自带的模型：直接读取应用落在本地运行时的 DeepFoundry 目录与密钥。"
+    }
+  }
+}

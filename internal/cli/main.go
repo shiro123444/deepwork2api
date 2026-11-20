@@ -222,6 +222,11 @@ func Main(v string) {
 	gateway.Version = version
 	netproxy.Install()
 	update.GUI = hasGUI
+	// the plugin magpie ships for DeepWorks: written where the host looks,
+	// on the list, and signed in with the key the app already wrote
+	if err := plugin.EnsureBuiltinDeepworks(); err != nil {
+		fmt.Fprintf(os.Stderr, "magpie: deepworks plugin: %v\n", err)
+	}
 	err = run(os.Args[1:])
 	proc.EndProbes() // a CLI still being asked something isn't left to init
 	sessions.Saved() // the session index kept, for the next run
