@@ -1,0 +1,95 @@
+name: DeepWorks edition
+
+# The DeepWorks edition is a build of this repo with -tags deepworks: it says
+# DeepWorks in the window, the page title and --version, and ships the DeepWorks
+# plugin. This checks it compiles and answers on every platform magpie serves,
+# which the macOS-only machine it was written on cannot.
+#
+# The Linux GUI is not here: it links GTK 3 and WebKitGTK 4.1 through cgo and
+# needs a Linux host to build, so this builds the CLI (nogui) there. The
+# release workflow builds the Linux GUI on Linux as it always has.
+
+on:
+  push:
+    branches: [main, deepworks]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: deepworks-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.goos }}/${{ matrix.goarch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  goos: linux,   goarch: amd64, tags: "nogui,deepworks" }
+          - { os: ubuntu-latest,  goos: linux,   goarch: arm64, tags: "nogui,deepworks" }
+          - { os: windows-latest, goos: windows, goarch: amd64, tags: "production,comlauncher,deepworks" }
+          - { os: windows-latest, goos: windows, goarch: arm64, tags: "production,comlauncher,deepworks" }
+          - { os: macos-latest,   goos: darwin,  goarch: arm64, tags: "deepworks" }
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # The Windows GUI embeds a launcher built for its own architecture
+      # (internal/update/com_embed_windows_<arch>.go), so it goes first.
+      - name: Build the Windows launcher
+        if: matrix.goos == 'windows'
+        shell: bash
+        env:
+          GOOS: windows
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          go build -trimpath -buildvcs=false -ldflags="-s -w" \
+            -o internal/update/launcher-${GOARCH}.com ./internal/update/launcher
+
+      - name: Build
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          ext=""
+          gui=""
+          if [ "${GOOS}" = "windows" ]; then ext=".exe"; gui="-H windowsgui"; fi
+          go build -tags "${{ matrix.tags }}" -trimpath -buildvcs=false \
+            -ldflags "-s -w ${gui} -X main.version=ci" \
+            -o "dist/magpie-dw-${GOOS}-${GOARCH}${ext}" .
+          ls -l dist/
+
+      # Running it is the point: a cross-compile that links but dies on start
+      # has fooled this repo before. --version needs no HOME, no key, no GUI.
+      - name: It answers as DeepWorks
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          bin="dist/magpie-dw-${GOOS}-${GOARCH}"
+          if [ "${GOOS}" = "windows" ]; then bin="${bin}.exe"; fi
+          out="$("$bin" --version)"
+          echo "$out"
+          case "$out" in
+            DeepWorks*) ;;
+            *) echo "::error::expected 'DeepWorks', got: $out"; exit 1 ;;
+          esac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: magpie-dw-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+          if-no-files-found: error
