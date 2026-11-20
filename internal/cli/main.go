@@ -23,6 +23,7 @@ import (
 	"github.com/yetone/magpie/internal/claudetui"
 	"github.com/yetone/magpie/internal/codexrelay"
 	"github.com/yetone/magpie/internal/davsync"
+	"github.com/yetone/magpie/internal/edition"
 	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/imagemcp"
 	"github.com/yetone/magpie/internal/netproxy"
@@ -197,7 +198,7 @@ func Main(v string) {
 		if len(os.Args) > 1 {
 			switch os.Args[1] {
 			case "-v", "--version", "version":
-				fmt.Println("magpie", version)
+				fmt.Println(edition.Short, edition.Version(version))
 				return
 			case "-h", "--help", "help":
 				fmt.Print(usage)
@@ -219,7 +220,7 @@ func Main(v string) {
 		return
 	}
 	endProbesOnSignal()
-	gateway.Version = version
+	gateway.Version = edition.Version(version)
 	netproxy.Install()
 	update.GUI = hasGUI
 	// the plugin magpie ships for DeepWorks: written where the host looks,
@@ -521,7 +522,7 @@ func run(args []string) error {
 		fmt.Print(usage)
 		return nil
 	case "-v", "--version", "version":
-		fmt.Println("magpie", version)
+		fmt.Println(edition.Short, edition.Version(version))
 		return nil
 	case "licenses":
 		fmt.Print(notices.Text)

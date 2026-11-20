@@ -153,3 +153,9 @@ dev:
 dev-once:
 	@go build -tags dev -o magpie-dev . && echo "  magpie-dev · UI from internal/gui/assets, reload on save · gateway $(DEV_ADDR)"
 	@MAGPIE_ADDR=$(DEV_ADDR) MAGPIE_DEV_UI=$(DEV_UI) ./magpie-dev app
+
+# DeepWorks edition: builds magpie-dw (-tags deepworks) and magpie-full into
+# dist/, prints their sizes and sha256s, and verifies --version on each.
+.PHONY: deepworks
+deepworks:
+	scripts/build-deepworks.sh

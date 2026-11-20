@@ -36,6 +36,7 @@ import (
 	"github.com/yetone/magpie/internal/applog"
 	"github.com/yetone/magpie/internal/autostart"
 	"github.com/yetone/magpie/internal/catalog"
+	"github.com/yetone/magpie/internal/edition"
 	"github.com/yetone/magpie/internal/filememo"
 	"github.com/yetone/magpie/internal/fonts"
 	"github.com/yetone/magpie/internal/fx"
@@ -1003,6 +1004,11 @@ func revalidated(next http.Handler) http.Handler {
 			rw.Header().Set("Cache-Control", "max-age=31536000, immutable")
 		}
 		if r.URL.Path == "/" {
+			// the page's own title, said in this build's name: the window
+			// takes it from here, so renaming it twice would drift
+			if edition.Name != "magpie" {
+				b = bytes.Replace(b, []byte("<title>magpie</title>"), []byte("<title>"+edition.Name+"</title>"), 1)
+			}
 			rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 			http.ServeContent(rw, r, "index.html", time.Time{}, bytes.NewReader(b))
 			return
