@@ -29,11 +29,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest,  goos: linux,   goarch: amd64, tags: "nogui,deepworks" }
-          - { os: ubuntu-latest,  goos: linux,   goarch: arm64, tags: "nogui,deepworks" }
-          - { os: windows-latest, goos: windows, goarch: amd64, tags: "production,comlauncher,deepworks" }
-          - { os: windows-latest, goos: windows, goarch: arm64, tags: "production,comlauncher,deepworks" }
-          - { os: macos-latest,   goos: darwin,  goarch: arm64, tags: "deepworks" }
+          # cgo is 1 only where the GUI needs it: the macOS window is Wails'
+          # Cocoa one, and without cgo it has no macosApp at all. Linux and
+          # Windows are built with the GUI's own tags and no cgo.
+          #
+          # run is true only where the target is the runner's own
+          # architecture: an arm64 binary cannot start on an x64 runner, and
+          # claiming it was tested would be a lie.
+          - { os: ubuntu-latest,  goos: linux,   goarch: amd64, tags: "nogui,deepworks", cgo: "0", run: true }
+          - { os: ubuntu-latest,  goos: linux,   goarch: arm64, tags: "nogui,deepworks", cgo: "0", run: false }
+          - { os: windows-latest, goos: windows, goarch: amd64, tags: "production,comlauncher,deepworks", cgo: "0", run: true }
+          - { os: windows-latest, goos: windows, goarch: arm64, tags: "production,comlauncher,deepworks", cgo: "0", run: false }
+          - { os: macos-latest,   goos: darwin,  goarch: arm64, tags: "deepworks", cgo: "1", run: true }
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -61,7 +68,7 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: "0"
+          CGO_ENABLED: ${{ matrix.cgo }}
         run: |
           ext=""
           gui=""
@@ -73,7 +80,9 @@ jobs:
 
       # Running it is the point: a cross-compile that links but dies on start
       # has fooled this repo before. --version needs no HOME, no key, no GUI.
+      # Only the runner's own architecture can start, so only it is asked.
       - name: It answers as DeepWorks
+        if: matrix.run
         shell: bash
         env:
           GOOS: ${{ matrix.goos }}
